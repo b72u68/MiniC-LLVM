@@ -1,57 +1,39 @@
 declare i8* @malloc(i32)
 define i32 @main() {
 main__entry:
-  %temp2 = call i8* @malloc(i32 40)
-  %temp1 = bitcast i8* %temp2 to i32*
-  %A = bitcast i32* %temp1 to i32*
-  %temp3 = bitcast i32 0 to i32
-  %result = bitcast i32 %temp3 to i32
-  %temp4 = bitcast i32 0 to i32
-  %i = bitcast i32 %temp4 to i32
-  %temp5 = bitcast i32 0 to i32
+  %temp1 = call i8* @malloc(i32 40)
+  %A = bitcast i8* %temp1 to i32*
+  %result = bitcast i32 0 to i32
+  %i = bitcast i32 0 to i32
+  %temp2 = bitcast i32 0 to i32
   br label %label1
 label1:
-  %temp16 = bitcast i32 %i to i32
-  %temp17 = bitcast i32 10 to i32
-  %temp15 = icmp slt i32 %temp16, %temp17
-  br i1 %temp15, label %label2, label %label3
+  %temp9 = icmp slt i32 %i, 10
+  br i1 %temp9, label %label2, label %label3
 label2:
-  %temp7 = bitcast i32 %i to i32
+  %temp4 = getelementptr i32, i32* %A, i32 %i
+  store i32 %i, i32* %temp4
+  %temp3 = load i32, i32* %temp4
+  %temp6 = getelementptr i32, i32* %A, i32 %i
+  %temp5 = load i32, i32* %temp6
+  %i = add i32 %i, 1
   %temp8 = bitcast i32 %i to i32
-  %temp9 = getelementptr i32, i32* %A, i32 %temp7
-  store i32 %temp8, i32* %temp9
-  %temp6 = load i32, i32* %temp9
-  %temp12 = bitcast i32 %i to i32
-  %temp13 = bitcast i32 1 to i32
-  %i = add i32 %temp12, %temp13
-  %temp11 = bitcast i32 %i to i32
-  %temp14 = bitcast i32 1 to i32
-  %temp10 = sub i32 %temp11, %temp14
+  %temp7 = sub i32 %temp8, 1
   br label %label1
 label3:
-  %temp18 = bitcast i32 0 to i32
-  %j = bitcast i32 %temp18 to i32
-  %temp19 = bitcast i32 0 to i32
+  %j = bitcast i32 0 to i32
+  %temp10 = bitcast i32 0 to i32
   br label %label4
 label4:
-  %temp29 = bitcast i32 %j to i32
-  %temp30 = bitcast i32 10 to i32
-  %temp28 = icmp slt i32 %temp29, %temp30
-  br i1 %temp28, label %label5, label %label6
+  %temp13 = icmp slt i32 %j, 10
+  br i1 %temp13, label %label5, label %label6
 label5:
-  %temp21 = bitcast i32 %result to i32
-  %temp22 = bitcast i32 %j to i32
-  %result = add i32 %temp21, %temp22
-  %temp20 = bitcast i32 %result to i32
-  %temp25 = bitcast i32 %j to i32
-  %temp26 = bitcast i32 1 to i32
-  %j = add i32 %temp25, %temp26
-  %temp24 = bitcast i32 %j to i32
-  %temp27 = bitcast i32 1 to i32
-  %temp23 = sub i32 %temp24, %temp27
+  %result = add i32 %result, %j
+  %j = add i32 %j, 1
+  %temp12 = bitcast i32 %j to i32
+  %temp11 = sub i32 %temp12, 1
   br label %label4
 label6:
-  %temp31 = bitcast i32 %result to i32
-  ret i32 %temp31
+  ret i32 %result
   ret i32 0
 }

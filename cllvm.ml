@@ -66,39 +66,33 @@ let rec compile_exp ctx (dest: L.var) (e: t_exp) : L.inst list =
     match e.edesc with
     | EConst c -> [move dest t (L.Const (val_of_const c))]
     | EVar v ->
-            (match t with
-            | L.TPointer (L.TFunction _) -> [move dest t (L.Var (L.Global v))]
+            (match e.einfo with
+            | TFunction _ -> [move dest t (L.Var (L.Global v))]
             | _ -> [move dest t (compile_var v)])
-    | EBinop (op, e1, e2) -> compile_binop ctx dest op e1 e2
-    | EAssign (l, e2) ->
-            (match l.ldesc with
-            | LHVar v -> (compile_exp ctx (L.Local v) e2) @ [move dest t (compile_var v)]
-            | LHArr (v, e1) ->
-                let d1 = new_temp () in
-                let il1 = compile_exp ctx d1 e1 in
-                let d2 = new_temp () in
-                let il2 = compile_exp ctx d2 e2 in
-                let elemptr = new_temp () in
-                il1 @ il2
-                @ [L.IGetElementPtr (elemptr, compile_typ ctx l.linfo, L.Local v, [(itype, L.Var d1)])]
-                @ [L.IStore (compile_typ ctx e2.einfo, L.Var d2, elemptr)]
-                @ [L.ILoad (dest, t, elemptr)]
-            | LHField (v, t', f) ->
-                    (match t' with
-                    | TStruct st ->
-                            (match (get_field_i (fst ctx) st f) with
-                            | Some i ->
-                                    let d = new_temp () in
-                                    let il = compile_exp ctx d e2 in
-                                    let elemptr = new_temp () in
-                                    let bc_elemptr = new_temp () in
-                                    il
-                                    @ [L.IGetElementPtr (elemptr, L.TStruct st, L.Local v, [(itype, L.Const i)])]
-                                    @ [L.ICast (bc_elemptr, L.CBitcast, L.TPointer (L.TStruct st), L.Var elemptr, L.TPointer t)]
-                                    @ [L.IStore (compile_typ ctx l.linfo, L.Var d, bc_elemptr)]
-                                    @ [L.ILoad (dest, t, bc_elemptr)]
-                            |None -> raise (TypeError (Printf.sprintf "Cannot find field %s in struct %s" f st, l.lloc)))
-                    | _ -> raise (TypeError (Printf.sprintf "Exptected %s to have struct type" v, l.lloc))))
+    | EBinop (op, e1, e2) -> compile_binop_exp ctx dest op e1 e2
+    | EAssign ({ldesc = LHVar v}, e') ->
+            (compile_exp ctx (L.Local v) e') @ [move dest t (compile_var v)]
+    | EAssign ({ldesc = LHArr (v, e1)} as l, e2) ->
+            let (il1, vd1) = compile_nested_exp ctx e1 in
+            let (il2, vd2) = compile_nested_exp ctx e2 in
+            let elemptr = new_temp () in
+            il1 @ il2
+            @ [L.IGetElementPtr (elemptr, compile_typ ctx l.linfo, L.Local v, [(itype, vd1)])]
+            @ [L.IStore (compile_typ ctx e2.einfo, vd2, elemptr)]
+            @ [L.ILoad (dest, t, elemptr)]
+    | EAssign ({ldesc = LHField (v, TStruct st, f)} as l, e') ->
+            (match (get_field_i (fst ctx) st f) with
+            | Some i ->
+                    let (il', vd') = compile_nested_exp ctx e' in
+                    let elemptr = new_temp () in
+                    let bc_elemptr = new_temp () in
+                    il'
+                    @ [L.IGetElementPtr (elemptr, L.TStruct st, L.Local v, [(itype, L.Const i)])]
+                    @ [L.ICast (bc_elemptr, L.CBitcast, L.TPointer (L.TStruct st), L.Var elemptr, L.TPointer t)]
+                    @ [L.IStore (compile_typ ctx l.linfo, vd', bc_elemptr)]
+                    @ [L.ILoad (dest, t, bc_elemptr)]
+            |None -> raise (TypeError (Printf.sprintf "Cannot find field %s in struct %s" f st, l.lloc)))
+    | EAssign (l, _) -> raise (TypeError (Printf.sprintf "Unsupported type in lhs", l.lloc))
     | ENewStruct st ->
             let sizeof_st = (L.sizeof (snd ctx) (L.TStruct st)) * word_size in
             let elemptr = new_temp () in
@@ -109,7 +103,7 @@ let rec compile_exp ctx (dest: L.var) (e: t_exp) : L.inst list =
             let elemptr = new_temp () in
             [L.ICall (elemptr, L.TPointer ctype, malloc, [(itype, L.Const sizeof_arr)])]
             @ [L.ICast (dest, L.CBitcast, L.TPointer ctype, L.Var elemptr, t)]
-    | EUnop (op, e') -> compile_unop ctx dest op e'
+    | EUnop (op, e') -> compile_unop_exp ctx dest op e'
     | ECall (e', el) ->
             let rec compile_args ils args = function
                 | [] -> (ils, List.rev args)
@@ -123,45 +117,47 @@ let rec compile_exp ctx (dest: L.var) (e: t_exp) : L.inst list =
             let (ils, args) = compile_args [] [] el in
             il @ ils @ [L.ICall (dest, t, funptr, args)]
     | EArrIndex (e1, e2) ->
-            let d1 = new_temp () in
-            let il1 = compile_exp ctx d1 e1 in
-            let d2 = new_temp () in
-            let il2 = compile_exp ctx d2 e2 in
-            let elemptr = new_temp () in
-            il1 @ il2
-            @ [L.IGetElementPtr (elemptr, compile_typ ctx e1.einfo, d1, [(itype, L.Var d2)])]
-            @ [L.ILoad (dest, t, elemptr)]
-    | EField (e', f) ->
-            (match e'.einfo with
-            | TStruct st ->
-                    (match get_field_i_and_typ (fst ctx) st f with
-                    | Some (i, t') ->
-                            let d = new_temp () in
-                            let il = compile_exp ctx d e' in
-                            let elemptr = new_temp () in
-                            let bc_elemptr = new_temp () in
-                            il @ [L.IGetElementPtr (elemptr, L.TStruct st, d, [(itype, L.Const i)])]
-                            @ [L.ICast (bc_elemptr, L.CBitcast, L.TPointer (L.TStruct st), L.Var elemptr, L.TPointer t)]
-                            @ [L.ILoad (dest, t, bc_elemptr)]
-                    | None -> raise (TypeError (Printf.sprintf "Cannot find field %s in struct %s" f st, e.eloc)))
-            | _ -> raise (TypeError ("EField expression expected struct type", e.eloc)))
+            let (il1, vd1) = compile_nested_exp ctx e1 in
+            (match vd1 with
+            | L.Const _ ->
+                    raise (TypeError ("EArrIndex expected Var value, got Const", e.eloc))
+            | L.Var d1 ->
+                let (il2, vd2) = compile_nested_exp ctx e2 in
+                let elemptr = new_temp () in
+                il1 @ il2
+                @ [L.IGetElementPtr (elemptr, t, d1, [(itype, vd2)])]
+                @ [L.ILoad (dest, t, elemptr)])
+    | EField ({einfo = TStruct st} as e', f) ->
+            (match get_field_i (fst ctx) st f with
+            | Some i ->
+                    let d = new_temp () in
+                    let il = compile_exp ctx d e' in
+                    let elemptr = new_temp () in
+                    let bc_elemptr = new_temp () in
+                    il @ [L.IGetElementPtr (elemptr, L.TStruct st, d, [(itype, L.Const i)])]
+                    @ [L.ICast (bc_elemptr, L.CBitcast, L.TPointer (L.TStruct st), L.Var elemptr, L.TPointer t)]
+                    @ [L.ILoad (dest, t, bc_elemptr)]
+            | None -> raise (TypeError (Printf.sprintf "Cannot find field %s in struct %s" f st, e.eloc)))
+    | EField _ -> raise (TypeError ("EField expression expected struct type", e.eloc))
     | ECast (e', t') -> []
 
-and compile_binop ctx (dest: L.var) (op: bop) (e1: t_exp) (e2: t_exp) : L.inst list =
+and compile_nested_exp ctx (e: t_exp) : L.inst list * L.value =
+    match e.edesc with
+    | EVar v -> ([], compile_var v)
+    | EConst c -> ([], L.Const (val_of_const c))
+    | _ -> let d = new_temp () in (compile_exp ctx d e, L.Var d)
+
+and compile_binop_exp ctx (dest: L.var) (op: bop) (e1: t_exp) (e2: t_exp) : L.inst list =
     let t = compile_typ ctx e1.einfo in
     match op with
     | BAdd | BSub | BMul | BDiv ->
-            let d1 = new_temp () in
-            let il1 = compile_exp ctx d1 e1 in
-            let d2 = new_temp () in
-            let il2 = compile_exp ctx d2 e2 in
-            il1 @ il2 @ [L.IBinop (dest, map_c_bop_to_llvm_bop op, t, L.Var d1, L.Var d2)]
+            let (il1, vd1) = compile_nested_exp ctx e1 in
+            let (il2, vd2) = compile_nested_exp ctx e2 in
+            il1 @ il2 @ [L.IBinop (dest, map_c_bop_to_llvm_bop op, t, vd1, vd2)]
     | BGt | BGe | BLt | BLe | BNe | BEq ->
-            let d1 = new_temp () in
-            let il1 = compile_exp ctx d1 e1 in
-            let d2 = new_temp () in
-            let il2 = compile_exp ctx d2 e2 in
-            il1 @ il2 @ [L.ICmp (dest, map_c_bop_to_llvm_cmp op, t, L.Var d1, L.Var d2)]
+            let (il1, vd1) = compile_nested_exp ctx e1 in
+            let (il2, vd2) = compile_nested_exp ctx e2 in
+            il1 @ il2 @ [L.ICmp (dest, map_c_bop_to_llvm_cmp op, t, vd1, vd2)]
     | BAnd ->
             let e1true = new_label () in
             let tdest = new_label () in
@@ -183,27 +179,26 @@ and compile_binop ctx (dest: L.var) (op: bop) (e1: t_exp) (e2: t_exp) : L.inst l
             @ [L.ILabel fdest] @ [move dest btype (L.Const 0)] @ [L.IBr ldone]
             @ [L.ILabel ldone]
 
-and compile_unop ctx (dest: L.var) (op: unop) (e: t_exp) : L.inst list =
+and compile_unop_exp ctx (dest: L.var) (op: unop) (e: t_exp) : L.inst list =
     let t = compile_typ ctx e.einfo in
-    let d = new_temp () in
-    let il = compile_exp ctx d e in
+    let (il, vd) = compile_nested_exp ctx e in
     match op with
-    | UNeg -> il @ [L.IBinop (dest, L.BSub, t, L.Const 0, L.Var d)]
-    | UNot -> il @ [L.IBinop (dest, L.BXor, t, L.Var d, L.Const 1)]
+    | UNeg -> il @ [L.IBinop (dest, L.BSub, t, L.Const 0, vd)]
+    | UNot -> il @ [L.IBinop (dest, L.BXor, t, vd, L.Const 1)]
 
 and compile_branch_exp ctx (e: t_exp) (tlabel: L.label) (flabel: L.label) : L.inst list =
-    let d = new_temp () in
-    (compile_exp ctx d e) @ [L.ICondBr (L.Var d, tlabel, flabel)]
+    let (il, vd) = compile_nested_exp ctx e in
+    il @ [L.ICondBr (vd, tlabel, flabel)]
 
 let rec compile_stmt ctx break_lbl cont_lbl (s: t_stmt): L.inst list =
     match s.sdesc with
     | SDecl (v, t, None) -> []
-    | SDecl (v, t, Some e) ->
-            let d = new_temp () in
-            let il = compile_exp ctx d e in
-            il @ [move (L.Local v) (compile_typ ctx t) (L.Var d)]
+    | SDecl (v, t, Some e) -> compile_exp ctx (L.Local v) e
     | SBlock sl -> List.fold_left (fun acc s -> acc @ (compile_stmt ctx break_lbl cont_lbl s)) [] sl
-    | SExp e -> compile_exp ctx (new_temp ()) e
+    | SExp e ->
+            (match e.edesc with
+            | EAssign ({ldesc = LHVar v}, e') -> (compile_exp ctx (L.Local v) e')
+            | _ -> compile_exp ctx (new_temp ()) e)
     | SIf (e, s1, s2) ->
             let ltrue = new_label () in
             let lfalse = new_label () in
@@ -230,9 +225,8 @@ let rec compile_stmt ctx break_lbl cont_lbl (s: t_stmt): L.inst list =
             | None -> failwith "Cannot find label for continue")
     | SReturn None -> [L.IRet None]
     | SReturn (Some e) ->
-            let d = new_temp () in
-            let il = compile_exp ctx d e in
-            il @ [L.IRet (Some (compile_typ ctx e.einfo, L.Var d))]
+            let (il, vd) = compile_nested_exp ctx e in
+            il @ [L.IRet (Some (compile_typ ctx e.einfo, vd))]
 
 let compile_func ctx (name, t, body) : L.func =
   match t with
