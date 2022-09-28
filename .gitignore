@@ -1,0 +1,14 @@
+*~
+*.cmo
+*.cmi
+*.cmx
+*.o
+c/*.cmo
+c/*.cmi
+c/*.cmx
+c/*.o
+llvm/*.cmo
+llvm/*.cmi
+llvm/*.cmx
+llvm/*.o
+main
