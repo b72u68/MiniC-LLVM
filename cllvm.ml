@@ -147,8 +147,6 @@ let rec compile_exp ctx (dest: L.var) (e: t_exp) : L.inst list =
             | _ -> raise (TypeError ("EField expression expected struct type", e.eloc)))
     | ECast (e', t') -> []
 
-and compile_nested_exp ctx
-
 and compile_binop ctx (dest: L.var) (op: bop) (e1: t_exp) (e2: t_exp) : L.inst list =
     let t = compile_typ ctx e1.einfo in
     match op with
