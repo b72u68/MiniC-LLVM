@@ -78,7 +78,7 @@ let rec compile_exp ctx (dest: L.var) (e: t_exp) : L.inst list =
             let elemptr = new_temp () in
             il1 @ il2
             @ [L.IGetElementPtr (elemptr, compile_typ ctx l.linfo, L.Local v, [(itype, vd1)])]
-            @ [L.IStore (compile_typ ctx e2.einfo, vd2, elemptr)]
+            @ [L.IStore (e_typ, vd2, elemptr)]
             @ [L.ILoad (dest, e_typ, elemptr)]
     | EAssign ({ldesc = LHField (v, TStruct st, f)} as l, e') ->
             (match (get_field_i (fst ctx) st f) with
@@ -144,9 +144,10 @@ let rec compile_exp ctx (dest: L.var) (e: t_exp) : L.inst list =
             (match e'.einfo with
             | TBool ->
                     (match t' with
-                    | TBool -> []
+                    | TBool -> [move dest btype vd']
                     | TChar -> [L.ICast (dest, L.CZext, btype, vd', ctype)]
                     | TInt -> [L.ICast (dest, L.CZext, btype, vd', itype)]
+                    | TVoid -> []
                     | _ ->
                             let cd = new_temp () in
                             [L.ICast (cd, L.CZext, btype, vd', itype)]
@@ -154,8 +155,9 @@ let rec compile_exp ctx (dest: L.var) (e: t_exp) : L.inst list =
             | TChar ->
                     (match t' with
                     | TBool -> [L.ICast (dest, L.CTrunc, ctype, vd', btype)]
-                    | TChar -> []
+                    | TChar -> [move dest ctype vd']
                     | TInt -> [L.ICast (dest, L.CZext, ctype, vd', itype)]
+                    | TVoid -> []
                     | _ ->
                             let cd = new_temp () in
                             [L.ICast (cd, L.CZext, ctype, vd', itype)]
@@ -164,8 +166,10 @@ let rec compile_exp ctx (dest: L.var) (e: t_exp) : L.inst list =
                     (match t' with
                     | TBool -> [L.ICast (dest, L.CTrunc, itype, vd', btype)]
                     | TChar -> [L.ICast (dest, L.CTrunc, itype, vd', ctype)]
-                    | TInt -> []
+                    | TInt -> [move dest itype vd']
+                    | TVoid -> []
                     | _ -> [L.ICast (dest, L.CInttoptr, itype, vd', compile_typ ctx t')])
+            | TVoid -> raise (TypeError ("Why do you want to cast void back to life???", e.eloc))
             | _ ->
                     (match t' with
                     | TBool ->
@@ -177,6 +181,7 @@ let rec compile_exp ctx (dest: L.var) (e: t_exp) : L.inst list =
                             [L.ICast (cd, L.CPtrtoint, compile_typ ctx e'.einfo, vd', itype)]
                             @ [L.ICast (dest, L.CTrunc, itype, L.Var cd, ctype)]
                     | TInt -> [L.ICast (dest, L.CPtrtoint, compile_typ ctx e'.einfo, vd', itype)]
+                    | TVoid -> []
                     | _ -> [L.ICast (dest, L.CBitcast, compile_typ ctx e'.einfo, vd', compile_typ ctx t')]))
 
 and compile_nested_exp ctx (e: t_exp) : L.inst list * L.value =
@@ -239,6 +244,24 @@ let rec compile_stmt ctx break_lbl cont_lbl (s: t_stmt): L.inst list =
     | SExp e ->
             (match e.edesc with
             | EAssign ({ldesc = LHVar v}, e') -> (compile_exp ctx (L.Local v) e')
+            | EAssign ({ldesc = LHArr (v, e1)} as l, e2) ->
+                    let e_typ = compile_typ ctx e.einfo in
+                    let (il1, vd1) = compile_nested_exp ctx e1 in
+                    let (il2, vd2) = compile_nested_exp ctx e2 in
+                    let elemptr = new_temp () in
+                    il1 @ il2
+                    @ [L.IGetElementPtr (elemptr, compile_typ ctx l.linfo, L.Local v, [(itype, vd1)])]
+                    @ [L.IStore (e_typ, vd2, elemptr)]
+            | EAssign ({ldesc = LHField (v, TStruct st, f)} as l, e') ->
+                    let e_typ = compile_typ ctx e.einfo in
+                    (match (get_field_i (fst ctx) st f) with
+                    | Some i ->
+                            let (il', vd') = compile_nested_exp ctx e' in
+                            let elemptr = new_temp () in
+                            il'
+                            @ [L.IGetElementPtr (elemptr, L.TStruct st, L.Local v, [(itype, L.Const 0); (itype, L.Const i)])]
+                            @ [L.IStore (e_typ, vd', elemptr)]
+                    |None -> raise (TypeError (Printf.sprintf "Cannot find field %s in struct %s" f st, l.lloc)))
             | _ -> compile_exp ctx (new_temp ()) e)
     | SIf (e, s1, s2) ->
             let ltrue = new_label () in
