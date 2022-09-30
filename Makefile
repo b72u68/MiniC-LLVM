@@ -15,9 +15,15 @@ BINS=main
 all: $(UTILS_FILES) $(FRONTC_FILES) $(C_FILES) $(LLVM_FILES) $(OTHER_FILES)
 	ocamlopt -g -o main $(INCLUDES) $(UTILS_FILES) $(FRONTC_FILES) $(C_FILES) $(LLVM_FILES) $(OTHER_FILES)
 
+buildtest:
+	ocamlfind ocamlc -o runtest -linkpkg -package unix -package stdio runtest.ml
+
 c/frontc/cparser.ml: c/frontc/clexer.mll c/frontc/cparser.mly
 	ocamllex c/frontc/clexer.mll
 	menhir c/frontc/cparser.mly
+
+test:
+	@./runtest
 
 clean:
 	rm -f *~

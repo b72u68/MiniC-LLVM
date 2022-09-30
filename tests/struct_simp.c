@@ -1,3 +1,4 @@
+//Result: 2
 struct s1 {
   int a;
   int b;

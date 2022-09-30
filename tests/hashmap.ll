@@ -106,57 +106,61 @@ del__entry:
   %temp44 = getelementptr %hashmap, %hashmap* %h, i32 0, i32 0
   %temp43 = load i32, i32* %temp44
   %idx = call i32 @mod(i32 %temp42, i32 %temp43)
-  %temp46 = getelementptr %hashmap, %hashmap* %h, i32 0, i32 1
-  %temp45 = load %node**, %node*** %temp46
-  %temp47 = getelementptr %node*, %node** %temp45, i32 %idx
-  %curr = load %node*, %node** %temp47
-  %temp58 = getelementptr %node, %node* %curr, i32 0, i32 0
-  %temp57 = load i32, i32* %temp58
-  %temp56 = icmp eq i32 %temp57, %key
-  br i1 %temp56, label %label13, label %label14
+  %temp57 = getelementptr %hashmap, %hashmap* %h, i32 0, i32 1
+  %temp56 = load %node**, %node*** %temp57
+  %temp58 = getelementptr %node*, %node** %temp56, i32 %idx
+  %temp55 = load %node*, %node** %temp58
+  %temp59 = getelementptr %node, %node* %temp55, i32 0, i32 0
+  %temp54 = load i32, i32* %temp59
+  %temp53 = icmp eq i32 %temp54, %key
+  br i1 %temp53, label %label13, label %label14
 label13:
-  %temp48 = getelementptr %hashmap, %hashmap* %h, i32 0, i32 1
-  %arr = load %node**, %node*** %temp48
-  %temp52 = getelementptr %hashmap, %hashmap* %h, i32 0, i32 1
-  %temp51 = load %node**, %node*** %temp52
-  %temp53 = getelementptr %node*, %node** %temp51, i32 %idx
-  %temp50 = load %node*, %node** %temp53
-  %temp54 = getelementptr %node, %node* %temp50, i32 0, i32 2
-  %temp49 = load %node*, %node** %temp54
-  %temp55 = getelementptr %node*, %node** %arr, i32 %idx
-  store %node* %temp49, %node** %temp55
+  %temp45 = getelementptr %hashmap, %hashmap* %h, i32 0, i32 1
+  %arr = load %node**, %node*** %temp45
+  %temp49 = getelementptr %hashmap, %hashmap* %h, i32 0, i32 1
+  %temp48 = load %node**, %node*** %temp49
+  %temp50 = getelementptr %node*, %node** %temp48, i32 %idx
+  %temp47 = load %node*, %node** %temp50
+  %temp51 = getelementptr %node, %node* %temp47, i32 0, i32 2
+  %temp46 = load %node*, %node** %temp51
+  %temp52 = getelementptr %node*, %node** %arr, i32 %idx
+  store %node* %temp46, %node** %temp52
   br label %label15
 label14:
   br label %label15
 label15:
+  %temp61 = getelementptr %hashmap, %hashmap* %h, i32 0, i32 1
+  %temp60 = load %node**, %node*** %temp61
+  %temp62 = getelementptr %node*, %node** %temp60, i32 %idx
+  %curr = load %node*, %node** %temp62
   br label %label16
 label16:
-  %temp73 = getelementptr %node, %node* %curr, i32 0, i32 2
-  %temp72 = load %node*, %node** %temp73
-  %temp71 = ptrtoint %node* %temp72 to i32
-  %temp70 = icmp ne i32 %temp71, 0
-  br i1 %temp70, label %label17, label %label18
+  %temp77 = getelementptr %node, %node* %curr, i32 0, i32 2
+  %temp76 = load %node*, %node** %temp77
+  %temp75 = ptrtoint %node* %temp76 to i32
+  %temp74 = icmp ne i32 %temp75, 0
+  br i1 %temp74, label %label17, label %label18
 label17:
-  %temp67 = getelementptr %node, %node* %curr, i32 0, i32 2
-  %temp66 = load %node*, %node** %temp67
-  %temp68 = getelementptr %node, %node* %temp66, i32 0, i32 0
-  %temp65 = load i32, i32* %temp68
-  %temp64 = icmp eq i32 %temp65, %key
-  br i1 %temp64, label %label19, label %label20
+  %temp71 = getelementptr %node, %node* %curr, i32 0, i32 2
+  %temp70 = load %node*, %node** %temp71
+  %temp72 = getelementptr %node, %node* %temp70, i32 0, i32 0
+  %temp69 = load i32, i32* %temp72
+  %temp68 = icmp eq i32 %temp69, %key
+  br i1 %temp68, label %label19, label %label20
 label19:
-  %temp61 = getelementptr %node, %node* %curr, i32 0, i32 2
-  %temp60 = load %node*, %node** %temp61
-  %temp62 = getelementptr %node, %node* %temp60, i32 0, i32 2
-  %temp59 = load %node*, %node** %temp62
-  %temp63 = getelementptr %node, %node* %curr, i32 0, i32 2
-  store %node* %temp59, %node** %temp63
+  %temp65 = getelementptr %node, %node* %curr, i32 0, i32 2
+  %temp64 = load %node*, %node** %temp65
+  %temp66 = getelementptr %node, %node* %temp64, i32 0, i32 2
+  %temp63 = load %node*, %node** %temp66
+  %temp67 = getelementptr %node, %node* %curr, i32 0, i32 2
+  store %node* %temp63, %node** %temp67
   ret
   br label %label21
 label20:
   br label %label21
 label21:
-  %temp69 = getelementptr %node, %node* %curr, i32 0, i32 2
-  %curr = load %node*, %node** %temp69
+  %temp73 = getelementptr %node, %node* %curr, i32 0, i32 2
+  %curr = load %node*, %node** %temp73
   br label %label16
 label18:
   ret
@@ -164,36 +168,36 @@ label18:
 
 define i32 @main() {
 main__entry:
-  %temp74 = call i8* @malloc(i32 8)
-  %h = bitcast i8* %temp74 to %hashmap*
-  %temp75 = getelementptr %hashmap, %hashmap* %h, i32 0, i32 0
-  store i32 5, i32* %temp75
-  %temp77 = call i8* @malloc(i32 20)
-  %temp76 = bitcast i8* %temp77 to %node**
-  %temp78 = getelementptr %hashmap, %hashmap* %h, i32 0, i32 1
-  store %node** %temp76, %node*** %temp78
-  %temp80 = bitcast %hashmap* %h to %hashmap*
-  %temp81 = bitcast i32 13 to i32
-  %temp82 = bitcast i32 2 to i32
-  %temp79 = call void @set(%hashmap* %temp80, i32 %temp81, i32 %temp82)
+  %temp78 = call i8* @malloc(i32 8)
+  %h = bitcast i8* %temp78 to %hashmap*
+  %temp79 = getelementptr %hashmap, %hashmap* %h, i32 0, i32 0
+  store i32 5, i32* %temp79
+  %temp81 = call i8* @malloc(i32 20)
+  %temp80 = bitcast i8* %temp81 to %node**
+  %temp82 = getelementptr %hashmap, %hashmap* %h, i32 0, i32 1
+  store %node** %temp80, %node*** %temp82
   %temp84 = bitcast %hashmap* %h to %hashmap*
-  %temp85 = bitcast i32 5 to i32
-  %temp86 = bitcast i32 19 to i32
+  %temp85 = bitcast i32 13 to i32
+  %temp86 = bitcast i32 2 to i32
   %temp83 = call void @set(%hashmap* %temp84, i32 %temp85, i32 %temp86)
   %temp88 = bitcast %hashmap* %h to %hashmap*
-  %temp89 = bitcast i32 3 to i32
-  %temp90 = bitcast i32 5 to i32
+  %temp89 = bitcast i32 5 to i32
+  %temp90 = bitcast i32 19 to i32
   %temp87 = call void @set(%hashmap* %temp88, i32 %temp89, i32 %temp90)
   %temp92 = bitcast %hashmap* %h to %hashmap*
-  %temp93 = bitcast i32 2 to i32
-  %temp94 = bitcast i32 10 to i32
+  %temp93 = bitcast i32 3 to i32
+  %temp94 = bitcast i32 5 to i32
   %temp91 = call void @set(%hashmap* %temp92, i32 %temp93, i32 %temp94)
   %temp96 = bitcast %hashmap* %h to %hashmap*
-  %temp97 = bitcast i32 13 to i32
-  %temp95 = call void @del(%hashmap* %temp96, i32 %temp97)
-  %temp99 = bitcast %hashmap* %h to %hashmap*
-  %temp100 = bitcast i32 3 to i32
-  %temp98 = call i32 @get(%hashmap* %temp99, i32 %temp100)
-  ret i32 %temp98
+  %temp97 = bitcast i32 2 to i32
+  %temp98 = bitcast i32 10 to i32
+  %temp95 = call void @set(%hashmap* %temp96, i32 %temp97, i32 %temp98)
+  %temp100 = bitcast %hashmap* %h to %hashmap*
+  %temp101 = bitcast i32 13 to i32
+  %temp99 = call void @del(%hashmap* %temp100, i32 %temp101)
+  %temp103 = bitcast %hashmap* %h to %hashmap*
+  %temp104 = bitcast i32 13 to i32
+  %temp102 = call i32 @get(%hashmap* %temp103, i32 %temp104)
+  ret i32 %temp102
   ret i32 0
 }

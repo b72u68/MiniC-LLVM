@@ -1,4 +1,4 @@
-//Result: 2
+//Result: -1
 struct node {
     int key;
     int val;
@@ -44,17 +44,16 @@ int get(hashmap h, int key) {
 
 void del(hashmap h, int key) {
     int idx = mod(key, h.size);
-    node curr = h.arr[idx];
-    if (curr.key == key) {
+    node curr;
+    if (h.arr[idx].key == key) {
         node arr[] = h.arr;
         arr[idx] = h.arr[idx].next;
     }
-    while ((int)(curr.next) != 0) {
+    for (curr = h.arr[idx]; (int)(curr.next) != 0; curr = curr.next) {
         if (curr.next.key == key) {
             curr.next = curr.next.next;
             return;
         }
-        curr = curr.next;
     }
 }
 
@@ -70,5 +69,5 @@ int main() {
 
     del(h, 13);
 
-    return get(h, 3);
+    return get(h, 13);
 }

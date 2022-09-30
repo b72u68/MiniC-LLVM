@@ -1,4 +1,4 @@
-//Result: 9
+//Result: 0
 struct node {
   int val;
   node tl;

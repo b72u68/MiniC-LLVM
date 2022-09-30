@@ -12,3 +12,4 @@ llvm/*.cmi
 llvm/*.cmx
 llvm/*.o
 main
+runtest
