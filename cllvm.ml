@@ -90,7 +90,7 @@ let rec compile_exp ctx (dest: L.var) (e: t_exp) : L.inst list =
                     @ [L.IStore (e_typ, vd', elemptr)]
                     @ [L.ILoad (dest, e_typ, elemptr)]
             |None -> raise (TypeError (Printf.sprintf "Cannot find field %s in struct %s" f st, l.lloc)))
-    | EAssign (l, _) -> raise (TypeError (Printf.sprintf "Unsupported type in lhs", l.lloc))
+    | EAssign (l, _) -> raise (TypeError (Printf.sprintf "Unsupported lhs", l.lloc))
     | ENewStruct st ->
             let sizeof_st = (L.sizeof (snd ctx) (L.TStruct st)) * word_size in
             let elemptr = new_temp () in
