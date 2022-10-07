@@ -77,7 +77,7 @@ let rec compile_exp ctx (dest: L.var) (e: t_exp) : L.inst list =
             let (il2, vd2) = compile_nested_exp ctx e2 in
             let elemptr = new_temp () in
             il1 @ il2
-            @ [L.IGetElementPtr (elemptr, compile_typ ctx l.linfo, L.Local v, [(itype, vd1)])]
+            @ [L.IGetElementPtr (elemptr, compile_typ ctx l.linfo, L.Local v, [(compile_typ ctx e1.einfo, vd1)])]
             @ [L.IStore (e_typ, vd2, elemptr)]
             @ [L.ILoad (dest, e_typ, elemptr)]
     | EAssign ({ldesc = LHField (v, TStruct st, f)} as l, e') ->
@@ -124,7 +124,7 @@ let rec compile_exp ctx (dest: L.var) (e: t_exp) : L.inst list =
                 let (il2, vd2) = compile_nested_exp ctx e2 in
                 let elemptr = new_temp () in
                 il1 @ il2
-                @ [L.IGetElementPtr (elemptr, e_typ, d1, [(itype, vd2)])]
+                @ [L.IGetElementPtr (elemptr, e_typ, d1, [(compile_typ ctx e2.einfo, vd2)])]
                 @ [L.ILoad (dest, e_typ, elemptr)])
     | EField ({einfo = TStruct st} as e', f) ->
             (match get_field_i (fst ctx) st f with
@@ -250,7 +250,7 @@ let rec compile_stmt ctx break_lbl cont_lbl (s: t_stmt): L.inst list =
                     let (il2, vd2) = compile_nested_exp ctx e2 in
                     let elemptr = new_temp () in
                     il1 @ il2
-                    @ [L.IGetElementPtr (elemptr, compile_typ ctx l.linfo, L.Local v, [(itype, vd1)])]
+                    @ [L.IGetElementPtr (elemptr, compile_typ ctx l.linfo, L.Local v, [(compile_typ ctx e1.einfo, vd1)])]
                     @ [L.IStore (e_typ, vd2, elemptr)]
             | EAssign ({ldesc = LHField (v, TStruct st, f)} as l, e') ->
                     let e_typ = compile_typ ctx e.einfo in
@@ -289,8 +289,10 @@ let rec compile_stmt ctx break_lbl cont_lbl (s: t_stmt): L.inst list =
             | None -> failwith "Cannot find label for continue")
     | SReturn None -> [L.IRet None]
     | SReturn (Some e) ->
-            let (il, vd) = compile_nested_exp ctx e in
-            il @ [L.IRet (Some (compile_typ ctx e.einfo, vd))]
+            if e.einfo = TVoid then [L.IRet None]
+            else
+                let (il, vd) = compile_nested_exp ctx e in
+                il @ [L.IRet (Some (compile_typ ctx e.einfo, vd))]
 
 let compile_func ctx (name, t, body) : L.func =
   match t with
