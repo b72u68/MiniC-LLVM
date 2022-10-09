@@ -7,7 +7,6 @@ return_void__entry:
 
 define i32 @main() {
 main__entry:
-  %temp1 = call void @return_void()
-  ret i32 0
+  %temp1$1 = call void @return_void()
   ret i32 0
 }

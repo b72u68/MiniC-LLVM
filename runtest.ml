@@ -9,7 +9,7 @@ let get_result (filename: string) : string =
     process_raw_result result_line
 ;;
 
-let cmd f = Printf.sprintf "./main -interpllvm -nossa -notypecheck -O1 tests/%s" f
+let cmd f = Printf.sprintf "./main -interpllvm -notypecheck -O1 tests/%s" f
 
 let run_cmd cmd =
     let chan = Unix.open_process_in cmd in

@@ -281,18 +281,18 @@ let rec compile_stmt ctx break_lbl cont_lbl (s: t_stmt): L.inst list =
             @ [L.ILabel ldone]
     | SBreak ->
             (match break_lbl with
-            | Some lbreak -> [L.IBr lbreak]
+            | Some lbreak -> [L.IBr lbreak; L.ILabel (new_label ())]
             | None -> failwith "Cannot find label for break")
     | SContinue ->
             (match cont_lbl with
-            | Some lcont -> [L.IBr lcont]
+            | Some lcont -> [L.IBr lcont; L.ILabel (new_label ())]
             | None -> failwith "Cannot find label for continue")
-    | SReturn None -> [L.IRet None]
+    | SReturn None -> [L.IRet None; L.ILabel (new_label ())]
     | SReturn (Some e) ->
             if e.einfo = TVoid then [L.IRet None]
             else
                 let (il, vd) = compile_nested_exp ctx e in
-                il @ [L.IRet (Some (compile_typ ctx e.einfo, vd))]
+                il @ [L.IRet (Some (compile_typ ctx e.einfo, vd)); L.ILabel (new_label ())]
 
 let compile_func ctx (name, t, body) : L.func =
   match t with
