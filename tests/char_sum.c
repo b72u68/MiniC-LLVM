@@ -1,4 +1,4 @@
-//Result: 1745 (That's what I got at least)
+//Result: 1745
 
 int main() {
   char str[] = new(char[22]);
